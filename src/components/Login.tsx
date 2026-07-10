@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Eye, EyeOff, Lock, Mail, AlertCircle } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -14,21 +15,25 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const supabase = createClient();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    // Mock verification
-    setTimeout(() => {
-      if (email === 'admin@territorios.com' && password === 'admin') {
-        sessionStorage.setItem('isLoggedIn', 'true');
-        onLoginSuccess();
-      } else {
-        setError('El correo electrónico o la contraseña son incorrectos.');
-        setIsLoading(false);
-      }
-    }, 800);
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError || !data.user) {
+      setError('El correo electrónico o la contraseña son incorrectos.');
+      setIsLoading(false);
+      return;
+    }
+
+    onLoginSuccess();
   };
 
   return (
@@ -130,9 +135,9 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
         {/* Demo Credentials Footer */}
         <div className="mt-8 pt-6 border-t border-gray-100 text-center text-xs text-gray-400 select-none">
-          <p className="font-semibold text-gray-500">Credenciales de Acceso Demo:</p>
+          <p className="font-semibold text-gray-500">Credenciales de Acceso:</p>
           <p className="mt-1">Usuario: <code className="bg-gray-100 px-1 py-0.5 rounded text-burgundy font-mono">admin@territorios.com</code></p>
-          <p className="mt-0.5">Contraseña: <code className="bg-gray-100 px-1 py-0.5 rounded text-burgundy font-mono">admin</code></p>
+          <p className="mt-0.5">Contraseña: <code className="bg-gray-100 px-1 py-0.5 rounded text-burgundy font-mono">admin123</code></p>
         </div>
       </div>
     </div>
