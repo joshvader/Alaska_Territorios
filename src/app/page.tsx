@@ -9,6 +9,8 @@ import StatsSection from '@/components/StatsSection';
 import ScheduleTable from '@/components/ScheduleTable';
 import EditAssignmentModal, { Assignment } from '@/components/EditAssignmentModal';
 import Login from '@/components/Login';
+import { createClient } from '@/lib/supabase/client';
+import type { AppUser } from '@/lib/supabase/types';
 import { SlidersHorizontal, FileDown } from 'lucide-react';
 
 const initialAssignments: Assignment[] = [
@@ -27,7 +29,7 @@ const initialAssignments: Assignment[] = [
 ];
 
 export default function Page() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [assignments, setAssignments] = useState<Assignment[]>(initialAssignments);
@@ -39,20 +41,44 @@ export default function Page() {
   // PDF Exporting State
   const [isExporting, setIsExporting] = useState(false);
 
-  // Check auth session storage on mount
+  const supabase = createClient();
+
+  // Verificar sesión de Supabase al montar y suscribirse a cambios
   useEffect(() => {
-    const logged = sessionStorage.getItem('isLoggedIn') === 'true';
-    setIsLoggedIn(logged);
-    setIsCheckingAuth(false);
-  }, []);
+    let mounted = true;
+
+    const init = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!mounted) return;
+      if (data.user) {
+        setUser({ id: data.user.id, email: data.user.email ?? null });
+      }
+      setIsCheckingAuth(false);
+    };
+
+    init();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({ id: session.user.id, email: session.user.email ?? null });
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   const handleLoginSuccess = () => {
-    setIsLoggedIn(true);
+    // El estado de user se actualizará automáticamente vía onAuthStateChange
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('isLoggedIn');
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
   };
 
   // Calculate dynamic stats
@@ -123,7 +149,7 @@ export default function Page() {
     );
   }
 
-  if (!isLoggedIn) {
+  if (!user) {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
@@ -135,7 +161,7 @@ export default function Page() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <Header />
+        <Header userEmail={user.email} />
 
         {/* Content Body */}
         {activeTab === 'dashboard' ? (

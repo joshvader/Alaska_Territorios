@@ -1,9 +1,29 @@
 'use client';
 
 import React from 'react';
-import { Search, Bell, Settings } from 'lucide-react';
+import { Search, Bell, Settings, LogOut } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
-export default function Header() {
+interface HeaderProps {
+  userEmail?: string | null;
+}
+
+export default function Header({ userEmail }: HeaderProps) {
+  const supabase = createClient();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    // El listener onAuthStateChange en page.tsx se encargará de redirigir al Login
+  };
+
+  const displayName = userEmail ? userEmail.split('@')[0] : 'Invitado';
+  const initials = displayName
+    .split(/[._-]/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0]?.toUpperCase())
+    .join('') || 'U';
+
   return (
     <header className="h-20 bg-white border-b border-gray-200 px-8 flex items-center justify-between font-sans select-none shrink-0">
       {/* Brand Title */}
@@ -39,14 +59,23 @@ export default function Header() {
         {/* Divider */}
         <div className="w-px h-8 bg-gray-200" />
 
+        {/* Logout button */}
+        <button
+          onClick={handleLogout}
+          className="p-2 text-gray-500 hover:text-burgundy hover:bg-burgundy-light rounded-full transition-all duration-200"
+          title="Cerrar sesión"
+        >
+          <LogOut className="w-5 h-5" />
+        </button>
+
         {/* User profile */}
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="text-sm font-bold text-gray-800 leading-tight">Alex Rivera</p>
-            <p className="text-xs text-gray-500 font-semibold leading-tight">Coordinador</p>
+            <p className="text-sm font-bold text-gray-800 leading-tight capitalize">{displayName}</p>
+            <p className="text-xs text-gray-500 font-semibold leading-tight">Conectado</p>
           </div>
           <div className="w-10 h-10 rounded-full bg-burgundy-light border border-burgundy/15 overflow-hidden flex items-center justify-center text-burgundy font-bold text-sm">
-            AR
+            {initials}
           </div>
         </div>
       </div>
