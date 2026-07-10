@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f4f5f6;
+  --foreground: #2d3130;
+  
+  --brand-burgundy: #8B2635;
+  --brand-burgundy-hover: #731e2b;
+  --brand-burgundy-light: #fbebee;
+  --sidebar-bg: #1e2022;
+  --sidebar-active: #2c2f33;
+  --card-bg: #ffffff;
+  --border-color: #e5e7eb;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-burgundy: var(--brand-burgundy);
+  --color-burgundy-hover: var(--brand-burgundy-hover);
+  --color-burgundy-light: var(--brand-burgundy-light);
+  --color-sidebar: var(--sidebar-bg);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-card: var(--card-bg);
+  --color-border: var(--border-color);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+}
+
