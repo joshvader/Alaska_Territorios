@@ -150,29 +150,32 @@ export function buildCapitanRanking(territories: Territory[]): { name: string; c
 export function generateWeeklyProgram(
   territories: Territory[],
   ranking: { name: string; count: number }[],
-  daysCount: number = 5
+  daysCount: number = 30
 ): Omit<Programacion, 'id' | 'created_at'>[] {
+  if (territories.length === 0) return [];
+
   const sortedTerritories = [...territories]
-    .sort((a, b) => lastCompletedSortKey(a.last_completed) - lastCompletedSortKey(b.last_completed))
-    .slice(0, daysCount);
+    .sort((a, b) => lastCompletedSortKey(a.last_completed) - lastCompletedSortKey(b.last_completed));
 
   // Capitanes ordenados por menor carga (los que menos han hecho)
   const sortedCapitanes = [...ranking]
     .sort((a, b) => a.count - b.count)
     .map((r) => r.name);
 
-  if (sortedCapitanes.length === 0) return [];
+  const capitanesList = sortedCapitanes.length > 0 ? sortedCapitanes : ['Sin Capitán'];
 
-  const days = DAYS.slice(0, daysCount);
   const times = [...DEFAULT_TIMES];
   const salidas = [...DEFAULT_SALIDAS];
   const tipos = [...DEFAULT_TERRITORY_TYPES];
 
-  return sortedTerritories.map((t, idx) => {
-    const capitan = sortedCapitanes[idx % sortedCapitanes.length];
+  return Array.from({ length: daysCount }, (_, idx) => {
+    const t = sortedTerritories[idx % sortedTerritories.length];
+    const capitan = capitanesList[idx % capitanesList.length];
+    const dayNum = String(idx + 1).padStart(2, '0');
+
     return {
       territory_number: t.number,
-      dia: days[idx % days.length],
+      dia: `Día ${dayNum}`,
       hora: times[idx % times.length],
       capitan,
       salida: salidas[idx % salidas.length],

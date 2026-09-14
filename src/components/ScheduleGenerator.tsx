@@ -11,7 +11,7 @@ interface Props {
   daysCount?: number;
 }
 
-export default function ScheduleGenerator({ territories, ranking, onGenerate, daysCount = 5 }: Props) {
+export default function ScheduleGenerator({ territories, ranking, onGenerate, daysCount = 30 }: Props) {
   const [days, setDays] = useState(daysCount);
   const [isLoading, setIsLoading] = useState(false);
   const [preview, setPreview] = useState<ReturnType<typeof generateWeeklyProgram> | null>(null);
@@ -35,7 +35,7 @@ export default function ScheduleGenerator({ territories, ranking, onGenerate, da
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 font-sans select-none">
       <div className="flex items-center gap-2 mb-4">
         <Sparkles className="w-5 h-5 text-burgundy" />
-        <h3 className="text-lg font-bold text-gray-800">Generador de Programa Semanal</h3>
+        <h3 className="text-lg font-bold text-gray-800">Generador de Programa Mensual</h3>
       </div>
       <p className="text-xs font-semibold text-gray-500 mb-4">
         Asigna automáticamente los territorios con cobertura más antigua a los capitanes con menor
@@ -51,7 +51,7 @@ export default function ScheduleGenerator({ territories, ranking, onGenerate, da
           onChange={(e) => setDays(Number(e.target.value))}
           className="appearance-none pl-3 pr-8 py-1.5 border border-gray-200 rounded-lg text-sm font-semibold text-gray-700 bg-gray-50/50 focus:outline-none focus:ring-2 focus:ring-burgundy/20 focus:border-burgundy cursor-pointer"
         >
-          {[3, 5, 7].map((n) => (
+          {[5, 10, 15, 20, 30].map((n) => (
             <option key={n} value={n}>
               {n} días
             </option>

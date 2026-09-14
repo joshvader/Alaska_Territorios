@@ -12,6 +12,7 @@ import Login from '@/components/Login';
 import TerritoriesList from '@/components/TerritoriesList';
 import CapitanesRanking from '@/components/CapitanesRanking';
 import ScheduleGenerator from '@/components/ScheduleGenerator';
+import MonthlyPdfTemplate from '@/components/MonthlyPdfTemplate';
 import { createClient } from '@/lib/supabase/client';
 import type { AppUser } from '@/lib/supabase/types';
 import {
@@ -177,39 +178,43 @@ export default function Page() {
   };
 
   const handleExportPDF = async () => {
-    const element = document.getElementById('dashboard-content');
+    const element = document.getElementById('monthly-pdf-template');
     if (!element) return;
 
     setIsExporting(true);
-    
+
     setTimeout(async () => {
       try {
         const canvas = await html2canvas(element, {
           scale: 2,
           useCORS: true,
           logging: false,
-          backgroundColor: '#f4f5f6',
+          backgroundColor: '#ffffff',
+          windowWidth: 1250,
+          width: 1200,
+          onclone: (clonedDoc) => {
+            // Reemplazar funciones de color lab() u oklch() no soportadas por html2canvas
+            const styleElements = clonedDoc.querySelectorAll('style');
+            styleElements.forEach((styleEl) => {
+              if (styleEl.textContent) {
+                styleEl.textContent = styleEl.textContent
+                  .replace(/lab\([^)]+\)/g, '#111827')
+                  .replace(/oklch\([^)]+\)/g, '#111827');
+              }
+            });
+          },
         });
-        
+
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgWidth = 210;
-        const pageHeight = 297;
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const imgWidth = pdfWidth;
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        let heightLeft = imgHeight;
-        let position = 0;
 
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, Math.min(imgHeight, pdfHeight));
 
-        while (heightLeft >= 0) {
-          position = heightLeft - imgHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight;
-        }
-
-        pdf.save('Programa_de_Predicacion_Territorios.pdf');
+        pdf.save('Programa_de_Predicacion_Septiembre_2026.pdf');
       } catch (error) {
         console.error('Error generating PDF:', error);
       } finally {
@@ -333,6 +338,11 @@ export default function Page() {
         }}
         onSave={handleSaveAssignment}
       />
+
+      {/* Template oculto para la generación limpia de PDF de 30 días */}
+      <div style={{ position: 'fixed', left: '-9999px', top: '0', pointerEvents: 'none' }}>
+        <MonthlyPdfTemplate assignments={assignments} />
+      </div>
     </div>
   );
 }
