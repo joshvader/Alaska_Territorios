@@ -12,6 +12,7 @@ import Login from '@/components/Login';
 import TerritoriesList from '@/components/TerritoriesList';
 import CapitanesRanking from '@/components/CapitanesRanking';
 import ScheduleGenerator from '@/components/ScheduleGenerator';
+import PreachingProgramEditor from '@/components/PreachingProgramEditor';
 import MonthlyPdfTemplate from '@/components/MonthlyPdfTemplate';
 import S13Editor from '@/components/S13Editor';
 import { createClient } from '@/lib/supabase/client';
@@ -44,7 +45,8 @@ export default function Page() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [territories, setTerritories] = useState<Territory[]>([]);
-  
+  const [programaciones, setProgramaciones] = useState<Programacion[]>([]);
+
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
@@ -112,6 +114,7 @@ export default function Page() {
     try {
       const [t, p] = await Promise.all([fetchTerritories(), fetchProgramaciones()]);
       setTerritories(t);
+      setProgramaciones(p);
       setAssignments(p.map(programacionToAssignment));
     } catch (err) {
       console.error('Error cargando datos:', err);
@@ -312,6 +315,14 @@ export default function Page() {
         ) : activeTab === 'datatables' ? (
           <main className="flex-1 p-8 overflow-y-auto">
             <S13Editor initialTerritories={territories} onRefreshData={loadData} />
+          </main>
+        ) : activeTab === 'programa' ? (
+          <main className="flex-1 p-8 overflow-y-auto">
+            <PreachingProgramEditor
+              territories={territories}
+              programaciones={programaciones}
+              onReload={loadData}
+            />
           </main>
         ) : (
           <main className="flex-1 p-8 flex flex-col items-center justify-center text-center font-sans">

@@ -144,6 +144,15 @@ export function buildCapitanRanking(territories: Territory[]): { name: string; c
     .sort((a, b) => b.count - a.count);
 }
 
+// Capitán "punto fijo": se deriva de la última asignación S-13 del territorio
+// (la más reciente sin fecha de completado; si no hay, la última asignación).
+export function derivarCapitanDeTerritorio(t: Territory): string {
+  const list = t.assignments ?? [];
+  if (list.length === 0) return 'Sin Capitán';
+  const pendiente = [...list].reverse().find((a) => !a.completedDate);
+  return (pendiente ?? list[list.length - 1])?.name?.trim() || 'Sin Capitán';
+}
+
 // Genera un programa semanal emparejando:
 // - Territorios con cobertura más antigua (last_completed ascendente; null primero).
 // - Capitanes con menor cantidad de territorios completados (round-robin).
