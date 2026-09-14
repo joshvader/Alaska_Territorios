@@ -21,9 +21,8 @@ interface SidebarProps {
 export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'datatables', label: 'Data Tables', icon: Table },
+    { id: 'datatables', label: 'Editor de S-13', icon: Table },
     { id: 'programa', label: 'Preaching Program', icon: MapPinned },
-    { id: 'querybuilder', label: 'Query Builder', icon: Database },
     { id: 'history', label: 'History', icon: History },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
@@ -59,11 +58,10 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 text-left relative ${
-                  isActive 
-                    ? 'bg-sidebar-active text-white font-bold' 
-                    : 'hover:bg-sidebar-active/40 hover:text-gray-200'
-                }`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 text-left relative ${isActive
+                  ? 'bg-sidebar-active text-white font-bold'
+                  : 'hover:bg-sidebar-active/40 hover:text-gray-200'
+                  }`}
               >
                 {isActive && (
                   <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-burgundy rounded-r" />
