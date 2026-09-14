@@ -1,14 +1,15 @@
 'use client';
 
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  Table, 
-  Database, 
-  History, 
-  Settings, 
-  HelpCircle, 
-  LogOut 
+import {
+  LayoutDashboard,
+  Table,
+  MapPinned,
+  Database,
+  History,
+  Settings,
+  HelpCircle,
+  LogOut
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -21,6 +22,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarPr
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'datatables', label: 'Data Tables', icon: Table },
+    { id: 'programa', label: 'Preaching Program', icon: MapPinned },
     { id: 'querybuilder', label: 'Query Builder', icon: Database },
     { id: 'history', label: 'History', icon: History },
     { id: 'settings', label: 'Settings', icon: Settings },
