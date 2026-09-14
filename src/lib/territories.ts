@@ -183,3 +183,193 @@ export function generateWeeklyProgram(
     };
   });
 }
+
+// ----- Funciones S-13: Importación, Exportación y Guardado en Supabase -----
+import * as XLSX from 'xlsx';
+
+function formatExcelVal(v: unknown): string | null {
+  if (v == null || v === '') return null;
+  if (typeof v === 'number' && v > 30000 && v < 60000) {
+    const d = XLSX.SSF.parse_date_code(v);
+    if (d) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${d.d}-${months[d.m - 1]}`;
+    }
+  }
+  return String(v).trim();
+}
+
+export type ParsedS13Result = {
+  number: number;
+  last_completed: string | null;
+  completed_count: number;
+  assignments: Assignment[];
+};
+
+export function parseS13Buffer(buffer: ArrayBuffer): ParsedS13Result[] {
+  const data = new Uint8Array(buffer);
+  const workbook = XLSX.read(data, { type: 'array' });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) return [];
+
+  const sheet = workbook.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1 });
+
+  const results: ParsedS13Result[] = [];
+
+  // 1. Detectar si es el formato de Tarjetas Matrix S-13 (oficial JW)
+  let isMatrixFormat = false;
+  for (let r = 0; r < Math.min(10, rows.length); r++) {
+    const rStr = JSON.stringify(rows[r] ?? '');
+    if (rStr.includes('REGISTRO DE ASIGNACIÓN DE TERRITORIO') || rStr.includes('Asignado a')) {
+      isMatrixFormat = true;
+      break;
+    }
+  }
+
+  if (isMatrixFormat) {
+    for (let r = 0; r < rows.length; r++) {
+      const row = rows[r];
+      if (!row || row.length === 0) continue;
+      const tNum = Number(row[0]);
+      if (!isNaN(tNum) && tNum > 0) {
+        const lastComp = formatExcelVal(row[1]);
+        const assignments: Assignment[] = [];
+        const nextRow = rows[r + 1] || [];
+
+        for (let c = 2; c < Math.max(row.length, nextRow.length); c++) {
+          const name = row[c];
+          if (
+            typeof name === 'string' &&
+            name.trim().length > 0 &&
+            !['Asignado a', 'Fecha en que se asignó', 'Fecha en que se completó', 'Terr', 'Última fecha en que se completó*'].includes(name.trim())
+          ) {
+            const assignedDate = formatExcelVal(nextRow[c]);
+            const completedDate = formatExcelVal(nextRow[c + 1]);
+            assignments.push({
+              name: name.trim(),
+              assignedDate,
+              completedDate,
+            });
+          }
+        }
+
+        const completed_count = assignments.filter((a) => a.completedDate).length;
+        results.push({
+          number: tNum,
+          last_completed: lastComp,
+          completed_count,
+          assignments,
+        });
+      }
+    }
+  } else {
+    // 2. Formato de Tabla plana (CSV/Excel con encabezados Territorio, Publicador, Asignado, Completado)
+    const objects = XLSX.utils.sheet_to_json<Record<string, any>>(sheet);
+    const map = new Map<number, { last_completed: string | null; assignments: Assignment[] }>();
+
+    for (const item of objects) {
+      const num = Number(item['Territorio'] ?? item['Terr'] ?? item['number'] ?? item['Numero']);
+      if (isNaN(num)) continue;
+
+      const pub = String(item['Publicador'] ?? item['Asignado a'] ?? item['name'] ?? '').trim();
+      const asigDate = formatExcelVal(item['Fecha Asignación'] ?? item['Fecha Asignado'] ?? item['assignedDate']);
+      const compDate = formatExcelVal(item['Fecha Completado'] ?? item['Fecha Devolución'] ?? item['completedDate']);
+      const lastComp = formatExcelVal(item['Última fecha en que se completó'] ?? item['last_completed']);
+
+      if (!map.has(num)) {
+        map.set(num, { last_completed: lastComp, assignments: [] });
+      }
+
+      const entry = map.get(num)!;
+      if (lastComp && !entry.last_completed) {
+        entry.last_completed = lastComp;
+      }
+
+      if (pub) {
+        entry.assignments.push({
+          name: pub,
+          assignedDate: asigDate,
+          completedDate: compDate,
+        });
+      }
+    }
+
+    map.forEach((val, num) => {
+      const completed_count = val.assignments.filter((a) => a.completedDate).length;
+      results.push({
+        number: num,
+        last_completed: val.last_completed,
+        completed_count,
+        assignments: val.assignments,
+      });
+    });
+  }
+
+  results.sort((a, b) => a.number - b.number);
+  return results;
+}
+
+export function exportS13ToExcel(territories: Territory[], filename: string = 'REGISTRO_S13_TERRITORIOS.xlsx') {
+  // Construir matriz estilo S-13 oficial
+  const rows: any[][] = [
+    ['REGISTRO DE ASIGNACIÓN DE TERRITORIO'],
+    ['Año de servicio: 2026'],
+    ['Terr', 'Última fecha en que se completó*', 'Asignado a', null, null, 'Asignado a', null, null, 'Asignado a'],
+    [null, null, 'Fecha en que se asignó', 'Fecha en que se completó', null, 'Fecha en que se asignó', 'Fecha en que se completó', null, 'Fecha en que se asignó', 'Fecha en que se completó'],
+  ];
+
+  for (const t of territories) {
+    const row1: any[] = [t.number, t.last_completed ?? ''];
+    const row2: any[] = [null, null];
+
+    (t.assignments ?? []).forEach((a) => {
+      row1.push(a.name, null, null);
+      row2.push(a.assignedDate ?? '', a.completedDate ?? '', null);
+    });
+
+    rows.push(row1);
+    rows.push(row2);
+    rows.push([]); // fila vacía separadora
+  }
+
+  const sheet = XLSX.utils.aoa_to_sheet(rows);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Hoja1');
+  XLSX.writeFile(workbook, filename);
+}
+
+export async function updateTerritoryInSupabase(
+  id: string,
+  patch: Partial<Territory>
+): Promise<Territory> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('territories')
+    .update(patch)
+    .eq('id', id)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as Territory;
+}
+
+export async function upsertTerritoriesInSupabase(
+  territoriesData: ParsedS13Result[]
+): Promise<void> {
+  const supabase = createClient();
+  const rows = territoriesData.map((t) => ({
+    number: t.number,
+    last_completed: t.last_completed,
+    completed_count: t.completed_count,
+    assignments: t.assignments,
+  }));
+
+  const { error } = await supabase
+    .from('territories')
+    .upsert(rows, { onConflict: 'number' });
+
+  if (error) throw error;
+}
+

@@ -13,6 +13,7 @@ import TerritoriesList from '@/components/TerritoriesList';
 import CapitanesRanking from '@/components/CapitanesRanking';
 import ScheduleGenerator from '@/components/ScheduleGenerator';
 import MonthlyPdfTemplate from '@/components/MonthlyPdfTemplate';
+import S13Editor from '@/components/S13Editor';
 import { createClient } from '@/lib/supabase/client';
 import type { AppUser } from '@/lib/supabase/types';
 import {
@@ -307,6 +308,10 @@ export default function Page() {
             </div>
 
             <TerritoriesList territories={territories} />
+          </main>
+        ) : activeTab === 'datatables' ? (
+          <main className="flex-1 p-8 overflow-y-auto">
+            <S13Editor initialTerritories={territories} onRefreshData={loadData} />
           </main>
         ) : (
           <main className="flex-1 p-8 flex flex-col items-center justify-center text-center font-sans">
